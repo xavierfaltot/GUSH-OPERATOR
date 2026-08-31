@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>GUSH OPERATOR — V0</title>
+<style>
+:root{--bg:#090909;--panel:#111;--line:#282828;--text:#e8e4dc;--muted:#8e8a82;--purple:#7137ff;--green:#8dd16f}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.02em}
+main{max-width:1500px;margin:auto;padding:24px;display:grid;grid-template-columns:1.4fr .8fr;gap:18px}.card{border:1px solid var(--line);background:var(--panel);padding:18px}.brand{grid-column:1/-1;display:flex;justify-content:space-between;align-items:end}.brand h1{margin:0;font-size:clamp(36px,7vw,92px);line-height:.86}.brand h1 span{color:var(--purple)}.tag{color:var(--muted)}
+.screen{min-height:470px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;background:radial-gradient(circle at 50% 40%,#242424,#090909 65%)}.decision{font-size:clamp(48px,9vw,120px);font-weight:800;letter-spacing:-.06em}.pulse{position:absolute;inset:auto 18px 18px;display:flex;justify-content:space-between;color:var(--muted);font-size:12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.metric{border-top:1px solid var(--line);padding:11px 0}.metric b{float:right}.bar{height:5px;background:#242424;margin-top:8px}.bar i{display:block;height:100%;background:var(--purple);width:50%}
+.controls label{display:grid;grid-template-columns:110px 1fr 46px;gap:8px;align-items:center;margin:12px 0;color:var(--muted)}input[type=range]{width:100%;accent-color:var(--purple)}button{background:var(--purple);color:white;border:0;padding:12px 18px;font:inherit;cursor:pointer}.scores div{display:grid;grid-template-columns:100px 1fr 45px;gap:10px;margin:9px 0;align-items:center}.scores i{display:block;height:7px;background:#292929}.scores i span{display:block;height:100%;background:var(--green)}
+.log{grid-column:1/-1;max-height:220px;overflow:auto;font-size:12px;color:var(--muted)}.log div{padding:6px 0;border-bottom:1px solid #1e1e1e}.on{color:var(--green)}
+@media(max-width:900px){main{grid-template-columns:1fr}.brand,.log{grid-column:auto}.screen{min-height:330px}}
+</style>
+</head>
+<body>
+<main>
+<section class="brand card"><div><div class="tag">BRAIN-DRIVEN GENERATIVE CINEMA / V0</div><h1>GUSH <span>OPER</span>ATOR</h1></div><div><span class="on">● SIGNAL LIVE</span></div></section>
+<section class="screen card"><div class="decision" id="decision">CALIBRATE</div><div class="pulse"><span id="cycle">cycle 000</span><span id="next">next decision in 5.0s</span></div></section>
+<aside class="card"><h3>LIVE SIGNAL</h3><div id="metrics"></div><h3>EDIT DIRECTIONS</h3><div class="scores" id="scores"></div></aside>
+<section class="card controls"><h3>DESIRE MODEL</h3><div id="controls"></div><button id="toggle">PAUSE LOOP</button></section>
+<section class="card"><h3>MODEL STATE</h3><p id="state"></p><p class="tag">Synthetic EEG-like input. V1 will replace this layer with timestamped hardware input.</p></section>
+<section class="card log"><h3>GUSH MAP</h3><div id="log"></div></section>
+</main>
+<script>
+const signalNames=['attention','activation','stability','noveltyResponse','response'];
+const params={desire:.75,attention:.80,memory:.65,novelty:.30,continuity:.85,resistance:.20};
+const directions=['CONTINUE','INTENSIFY','RETURN','MUTATE','BREAK'];
+let signals={attention:.5,activation:.5,stability:.5,noveltyResponse:.5,response:.5};
+let memory=[];let running=true;let cycle=0;let left=5;
+const clamp=x=>Math.max(0,Math.min(1,x));
+function wander(x,amount=.09){return clamp(x+(Math.random()-.5)*amount)}
+function tickSignals(){
+  signals.attention=wander(signals.attention,.11);
+  signals.activation=wander(signals.activation,.15);
+  signals.stability=clamp(.72*signals.stability+.28*(1-Math.abs(signals.activation-.5)*1.4));
+  signals.noveltyResponse=wander(signals.noveltyResponse,.13);
+  signals.response=clamp(.45*signals.attention+.35*signals.activation+.20*Math.random());
+  renderMetrics();
+}
+function scoreDirections(){
+  const m=memory.slice(-6); const recent=m.length?m.filter(x=>x==='RETURN').length/m.length:0;
+  const s={
+    CONTINUE: params.continuity*.58+signals.stability*.28+signals.attention*.14,
+    INTENSIFY: params.desire*.33+signals.activation*.34+signals.response*.33,
+    RETURN: params.memory*.48+signals.response*.24+recent*.18+Math.random()*.10,
+    MUTATE: params.novelty*.45+signals.noveltyResponse*.30+(1-signals.stability)*.25,
+    BREAK: params.resistance*.40+(1-signals.attention)*.30+signals.activation*.15+Math.random()*.15
+  };
+  Object.keys(s).forEach(k=>s[k]=clamp(s[k]+(Math.random()-.5)*.10)); return s;
+}
+function decide(){
+  cycle++; const scores=scoreDirections();
+  const choice=Object.entries(scores).sort((a,b)=>b[1]-a[1])[0][0];
+  memory.push(choice); if(memory.length>40) memory.shift();
+  document.getElementById('decision').textContent=choice;
+  document.getElementById('cycle').textContent='cycle '+String(cycle).padStart(3,'0');
+  renderScores(scores); renderState(choice); addLog(choice,scores);
+}
+function renderMetrics(){
+  const el=document.getElementById('metrics'); el.innerHTML='';
+  signalNames.forEach(n=>{const v=signals[n]; const d=document.createElement('div'); d.className='metric'; d.innerHTML=`${n.toUpperCase()} <b>${v.toFixed(2)}</b><div class="bar"><i style="width:${v*100}%"></i></div>`;el.appendChild(d)});
+}
+function renderScores(scores){const el=document.getElementById('scores');el.innerHTML='';directions.forEach(d=>{const v=scores[d];el.innerHTML+=`<div><span>${d}</span><i><span style="width:${v*100}%"></span></i><b>${v.toFixed(2)}</b></div>`})}
+function renderState(choice){document.getElementById('state').innerHTML=`Current direction: <b>${choice}</b><br>Attention ${signals.attention.toFixed(2)} / Activation ${signals.activation.toFixed(2)} / Response ${signals.response.toFixed(2)}<br>Memory depth: ${memory.length} cycles`;}
+function addLog(choice,scores){const d=document.createElement('div');d.textContent=`${new Date().toLocaleTimeString()}  #${String(cycle).padStart(3,'0')}  ${choice}  att:${signals.attention.toFixed(2)} act:${signals.activation.toFixed(2)} rsp:${signals.response.toFixed(2)} score:${scores[choice].toFixed(2)}`;document.getElementById('log').prepend(d)}
+function makeControls(){const el=document.getElementById('controls');Object.keys(params).forEach(k=>{const label=document.createElement('label');label.innerHTML=`<span>${k.toUpperCase()}</span><input type="range" min="0" max="1" step="0.01" value="${params[k]}"><b>${params[k].toFixed(2)}</b>`;const input=label.querySelector('input'),out=label.querySelector('b');input.oninput=()=>{params[k]=+input.value;out.textContent=params[k].toFixed(2)};el.appendChild(label)})}
+makeControls();renderMetrics();decide();
+setInterval(()=>{if(!running)return;tickSignals();left-=.1;if(left<=0){left=5;decide()}document.getElementById('next').textContent=`next decision in ${left.toFixed(1)}s`},100);
+document.getElementById('toggle').onclick=()=>{running=!running;document.getElementById('toggle').textContent=running?'PAUSE LOOP':'START LOOP'};
+</script>
+</body>
+</html>
