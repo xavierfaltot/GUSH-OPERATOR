@@ -1,0 +1,27 @@
+{
+  "version": "0.1.0",
+  "decision_interval_ms": 5000,
+  "smoothing": 0.72,
+  "signal": {
+    "attention": 0.50,
+    "activation": 0.50,
+    "stability": 0.50,
+    "novelty_response": 0.50,
+    "response": 0.50
+  },
+  "desire_model": {
+    "desire": 0.75,
+    "attention": 0.80,
+    "memory": 0.65,
+    "novelty": 0.30,
+    "continuity": 0.85,
+    "resistance": 0.20
+  },
+  "directions": [
+    "CONTINUE",
+    "INTENSIFY",
+    "RETURN",
+    "MUTATE",
+    "BREAK"
+  ]
+}
